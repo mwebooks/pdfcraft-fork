@@ -35,6 +35,13 @@ macro_rules! tl_ctx {
     };
 }
 pub mod canvas;
+/// Personal stripped-down build: text editing only.
+pub(crate) const SIMPLE_UI: bool = true;
+/// Below this window width (points) the phone layout is used.
+pub(crate) const NARROW: f32 = 700.0;
+/// True while the window is narrower than NARROW (set every frame by the mode bar).
+pub(crate) static NARROW_NOW: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 mod chrome;
 mod image_engine;
 pub use combine_grid::ThumbState as CombineThumb;

@@ -9,7 +9,8 @@ use crate::{PdfCraftApp, icons, panels::human_size, widgets};
 
 pub mod folders_ui;
 
-const RECOMMENDED: [&str; 5] = ["organize", "comment", "form", "edit", "protect"];
+/// Edit is left out: the personal build's Edit panel shows only Format text (panels/edit.rs), so its card opened an empty panel. Edit text stays on the hotbar.
+const RECOMMENDED: [&str; 4] = ["organize", "comment", "form", "protect"];
 
 /// A soft shadow that rises on hover and settles when the card is pressed.
 pub(crate) fn card_lift(ui: &egui::Ui, t: &Tokens, rect: Rect, press: theme::Press) {

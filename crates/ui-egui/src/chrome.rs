@@ -276,7 +276,7 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                         app.dialog = Some(Dialog::Shortcuts);
                     }
                     // One click to the community, from anywhere in the app.
-                    if widgets::ghost_button_sized(ui, "messages-square", "Discord", tab_h).on_hover_text(pdfcraft_engine::links::DISCORD).clicked() {
+                    if !crate::SIMPLE_UI && widgets::ghost_button_sized(ui, "messages-square", "Discord", tab_h).on_hover_text(pdfcraft_engine::links::DISCORD).clicked() {
                         app.execute("help.discord");
                     }
                 });
@@ -589,7 +589,24 @@ const MODE_BAR_SEARCH_MIN: f32 = 140.0;
 pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     // The document in the active tab may hide the menu or the tools (`crate::viewer_prefs`).
-    let hidden = app.hidden_interface();
+    let mut hidden = app.hidden_interface();
+    if crate::SIMPLE_UI {
+        // Always the Edit workspace, no menus, no mode tabs.
+        if app.mode != Mode::Edit {
+            app.select_mode(Mode::Edit);
+        }
+        hidden.menubar = true;
+        // Phone: close the side panel once when the window becomes narrow (it can be reopened).
+        let narrow = ui.ctx().content_rect().width() < crate::NARROW;
+        crate::NARROW_NOW.store(narrow, std::sync::atomic::Ordering::Relaxed);
+        let id = egui::Id::new("simple_was_narrow");
+        if ui.ctx().data(|d| d.get_temp::<bool>(id)) != Some(narrow) {
+            ui.ctx().data_mut(|d| d.insert_temp(id, narrow));
+            if narrow {
+                app.left_open = false;
+            }
+        }
+    }
     egui::Panel::top("mode_bar")
         .exact_size(48.0)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(10, 0)).stroke(Stroke::new(1.0, t.divider)))
@@ -608,13 +625,14 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 }
                 // Acrobat's mode bar has no Read tab: reading is what the viewer does with no tool
                 // in use. Read mode (the panes hidden) stays a View command and a default workspace.
-                let modes = [(Mode::AllTools, "All tools"), (Mode::Edit, "Edit"), (Mode::Convert, "Convert"), (Mode::Sign, "E-Sign")];
+                let modes: &[(Mode, &str)] =
+                    if crate::SIMPLE_UI { &[] } else { &[(Mode::AllTools, "All tools"), (Mode::Edit, "Edit"), (Mode::Convert, "Convert"), (Mode::Sign, "E-Sign")] };
                 // What the right side needs (three 32 px buttons, gaps) and the least search box worth showing.
                 let avail = ui.available_width();
                 let tabs_w: f32 = modes.iter().map(|(_, l)| widgets::mode_tab_width(ui, tl!(*l))).sum::<f32>() + 2.0 * (modes.len() as f32 - 1.0);
                 let inline_tabs = avail >= tabs_w + MODE_BAR_RIGHT + MODE_BAR_SEARCH_MIN;
                 if inline_tabs {
-                    for (mode, label) in modes {
+                    for &(mode, label) in modes {
                         if widgets::mode_tab(ui, tl!(label), app.mode == mode).clicked() {
                             app.switch_mode(mode, true);
                         }
@@ -630,7 +648,7 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     let resp = widgets::ghost_button(ui, "chevron-down", current);
                     egui::Popup::menu(&resp).show(|ui| {
                         ui.set_min_width(160.0);
-                        for (mode, label) in modes {
+                        for &(mode, label) in modes {
                             if ui.add(egui::Button::selectable(app.mode == mode, tl!(label))).clicked() {
                                 app.switch_mode(mode, true);
                             }

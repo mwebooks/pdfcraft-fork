@@ -214,6 +214,17 @@ fn core_tool_buttons(ui: &mut egui::Ui, app: &mut PdfCraftApp, cell: f32, popup_
     if icons::button(ui, "hand", cell, app.quick_tool == QuickTool::Hand, tl!("Hand (H)")).clicked() {
         app.quick_tool = QuickTool::Hand;
     }
+    if crate::SIMPLE_UI {
+        let on = app.quick_tool == QuickTool::EditText;
+        if icons::button(ui, "text-cursor-input", cell, on, tl!("Edit text & images")).clicked() {
+            if on {
+                app.put_down_edit_text();
+            } else {
+                app.quick_tool = QuickTool::EditText;
+            }
+        }
+        return;
+    }
     let may_crop = command("page.crop").is_some_and(|spec| app.command_enabled(spec));
     ui.add_enabled_ui(may_crop, |ui| {
         if icons::button(ui, "crop", cell, app.quick_tool == QuickTool::Crop, tl!("Crop pages")).clicked() {

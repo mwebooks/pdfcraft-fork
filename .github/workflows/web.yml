@@ -1,0 +1,38 @@
+# Personal build: compiles the web version on every push to main and publishes it as the release "latest"
+# (asset pdf-web.tar.gz). The Workbench pulls it only when the owner says "deploy".
+name: web
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: web
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install trunk
+        run: |
+          curl -sSfL https://github.com/trunk-rs/trunk/releases/download/v0.22.1/trunk-x86_64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin trunk
+          trunk --version
+      - name: Build
+        working-directory: apps/pdfcraft-web
+        run: trunk build --release
+      - name: Package
+        run: tar czf pdf-web.tar.gz -C dist/web .
+      - name: Publish release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest pdf-web.tar.gz --target "$GITHUB_SHA" --title "latest ($(date -u +%F\ %H:%M) UTC)" --notes "Commit $GITHUB_SHA"

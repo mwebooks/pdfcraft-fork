@@ -53,6 +53,10 @@ impl PdfCraftApp {
     }
 
     pub(crate) fn reveal_tools(&mut self) {
+        // Personal build, phone: the side panel stays closed when a document or mode opens.
+        if crate::SIMPLE_UI && crate::NARROW_NOW.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
+        }
         self.left_open = true;
     }
 
@@ -77,7 +81,9 @@ impl PdfCraftApp {
             self.put_down_edit_text();
         }
         self.left = LeftPanel::Tool(id);
-        self.reveal_tools();
+        // A tool picked from Home, the palette or a panel opens its panel on the phone too:
+        // reveal_tools keeps the phone's panel closed only when a document or mode opens.
+        self.left_open = true;
         if let Some(view) = self.active.and_then(|i| self.views.get_mut(i)) {
             if id == "organize" {
                 view.open_organize();
